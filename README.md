@@ -121,10 +121,4 @@ The application name in config is **`plinio`**.
 
 ---
 
-## License
-
-Specify your license here once the project ships one.
-
----
-
 *Plinio — named for the idea of mapping the territory with care. Built for Ambulancia.*
