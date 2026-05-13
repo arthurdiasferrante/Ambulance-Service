@@ -102,7 +102,7 @@
 				<artifactId>exec-maven-plugin</artifactId>
 				<version>3.5.0</version>
 				<configuration>
-					<mainClass>com.ambulancia.plinio.atendimento.AmbulanciaAtendimentoMain</mainClass>
+					<mainClass>com.ambulancia.plinio.routing.NeighborhoodHospitalRouterDemo</mainClass>
 				</configuration>
 			</plugin>
 		</plugins>
