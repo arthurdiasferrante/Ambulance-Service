@@ -12,13 +12,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.PriorityQueue;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
@@ -169,12 +172,33 @@ public class GraphService {
         return fallbackStraightLineNearestRoutableHospital(fromAddressId);
     }
 
-    /**
-     * When the road graph has no path to any hospital with vacancy, pick the geographically closest
-     * routable hospital (Euclidean distance in the coordinate plane). Route is {@code [origin, hospitalAddress]}
-     * even if there is no {@link GraphEdge} between them — callers may treat it as crow-fly / dispatch hint.
-     */
+    /** BFS over the graph ignoring vertex availability (topology only). */
+    private Set<Long> structuralComponent(long fromAddressId) {
+        Set<Long> seen = new HashSet<>();
+        ArrayDeque<Long> q = new ArrayDeque<>();
+        q.add(fromAddressId);
+        seen.add(fromAddressId);
+        while (!q.isEmpty()) {
+            long u = q.remove();
+            for (long v : neighborsOf(u)) {
+                if (seen.add(v)) {
+                    q.add(v);
+                }
+            }
+        }
+        return seen;
+    }
+
     private Optional<NearestHospitalRoutingResult> fallbackStraightLineNearestRoutableHospital(long fromAddressId) {
+        Set<Long> structural = structuralComponent(fromAddressId);
+        boolean routableInSameStructuralComponent = hospitalRepository.findAll().stream()
+                .filter(GraphService::isHospitalRoutable)
+                .map(h -> h.getAddress().getId())
+                .anyMatch(structural::contains);
+        if (routableInSameStructuralComponent) {
+            return Optional.empty();
+        }
+
         double[] origin = addressCoords.get(fromAddressId);
         if (origin == null) {
             return Optional.empty();
@@ -192,15 +216,17 @@ public class GraphService {
                 continue;
             }
             double d = Math.hypot(origin[0] - c[0], origin[1] - c[1]);
-            if (d < bestDist - DIST_EPS
-                    || (Math.abs(d - bestDist) <= DIST_EPS
-                            && bestHospital != null
-                            && h.getId() < bestHospital.getId())) {
+            if (bestHospital == null) {
+                bestHospital = h;
+                bestDist = d;
+                bestHospitalAddressId = aid;
+                continue;
+            }
+            if (d < bestDist - DIST_EPS) {
                 bestDist = d;
                 bestHospital = h;
                 bestHospitalAddressId = aid;
-            } else if (bestHospital == null || d < bestDist - DIST_EPS) {
-                bestDist = d;
+            } else if (Math.abs(d - bestDist) <= DIST_EPS && h.getId() < bestHospital.getId()) {
                 bestHospital = h;
                 bestHospitalAddressId = aid;
             }

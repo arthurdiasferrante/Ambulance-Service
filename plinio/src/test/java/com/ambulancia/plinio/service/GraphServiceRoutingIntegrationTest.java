@@ -136,6 +136,22 @@ class GraphServiceRoutingIntegrationTest {
     }
 
     @Test
+    void isolatedAddress_withoutGraphPath_usesStraightLineFallbackToNearestHospitalWithVacancy() {
+        Address center = saveAddress("Center", true, 0, 0);
+        Address hub = saveAddress("Hub", true, 50, 50);
+        Address remote = saveAddress("Cantareira", true, 120, 200);
+        link(center.getId(), hub.getId());
+        saveHospital("H-Center", true, 20, 5, center);
+        graphService.refreshFromDatabase();
+
+        Optional<NearestHospitalRoutingResult> route = graphService.findNearestAvailableHospitalRoute(remote.getId());
+        assertThat(route).isPresent();
+        assertThat(route.get().hospital().getName()).isEqualTo("H-Center");
+        assertThat(route.get().routeAddressIds()).containsExactly(remote.getId(), center.getId());
+        assertThat(route.get().totalRouteDistance()).isCloseTo(Math.hypot(120, 200), within(1e-6));
+    }
+
+    @Test
     void routingService_throwsWhenNoReachableHospitalWithVacancy() {
         Address a = saveAddress("A", true, 0, 0);
         Address b = saveAddress("B", true, 1, 0);
