@@ -1,0 +1,56 @@
+package com.ambulancia.plinio.service;
+
+import com.ambulancia.plinio.dto.address.AddressRequestDTO;
+import com.ambulancia.plinio.dto.address.AddressResponseDTO;
+import com.ambulancia.plinio.mapper.AddressMapper;
+import com.ambulancia.plinio.model.Address;
+import com.ambulancia.plinio.repository.AddressRepository;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.util.List;
+
+@Service
+public class AddressService {
+
+    private final AddressRepository repository;
+    private final AddressMapper mapper;
+
+    public AddressService(AddressRepository addressRepository, AddressMapper addressMapper) {
+        this.repository = addressRepository;
+        this.mapper = addressMapper;
+    }
+
+    public AddressResponseDTO createAddress(AddressRequestDTO requestDTO) {
+        Address address = mapper.toEntity(requestDTO);
+        Address saved = repository.save(address);
+        return mapper.toResponseDTO(saved);
+    }
+
+    public AddressResponseDTO getAddress(Long id) {
+        Address address = repository
+                .findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Endereço não encontrado" + id));
+        return mapper.toResponseDTO(address);
+    }
+
+    public List<AddressResponseDTO> listAddresses() {
+        return mapper.toResponseDTOList(repository.findAll());
+    }
+
+    public AddressResponseDTO updateAddress(Long id, AddressRequestDTO requestDTO) {
+        Address address = repository
+                .findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Endereço não encontrado" + id));
+        mapper.updateEntityFromDTO(requestDTO, address);
+        Address saved = repository.save(address);
+        return mapper.toResponseDTO(saved);
+    }
+
+    public void deleteAddress(Long id) {
+        Address address = repository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Endereço não encontrado" + id));
+        repository.delete(address);
+    }
+}
