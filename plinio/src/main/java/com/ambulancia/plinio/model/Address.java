@@ -13,6 +13,9 @@ public class Address {
     @Column(nullable = false)
     private String neighborhood;
 
+    @Column(nullable = false)
+    private boolean available = true;
+
     public long getId() {
         return Id;
     }
@@ -23,5 +26,13 @@ public class Address {
 
     public void setNeighborhood(String neighborhood) {
         this.neighborhood = neighborhood;
+    }
+
+    public boolean isAvailable() {
+        return available;
+    }
+
+    public void setAvailable(boolean available) {
+        this.available = available;
     }
 }

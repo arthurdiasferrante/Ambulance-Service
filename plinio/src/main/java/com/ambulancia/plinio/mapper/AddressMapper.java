@@ -13,6 +13,7 @@ import java.util.List;
 public interface AddressMapper {
 
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "available", ignore = true)
     @Mapping(source = "name", target = "neighborhood")
     Address toEntity(AddressRequestDTO requestDTO);
 
