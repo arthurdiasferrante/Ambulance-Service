@@ -6,6 +6,7 @@ import com.ambulancia.plinio.repository.HospitalRepository;
 import jakarta.annotation.PostConstruct;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -14,7 +15,7 @@ import java.util.concurrent.ConcurrentMap;
 @Service
 public class GraphService {
 
-    private final Map<Long, List<Long>> adjacentList = new ConcurrentHashMap<>();
+    private final Map<Long, List<Long>> adjacencyList = new ConcurrentHashMap<>();
 
     private final Map<Long, List<Hospital>> hospitalByAddressId = new ConcurrentHashMap<>();
 
@@ -31,5 +32,13 @@ public class GraphService {
 
     }
 
-    public void addConnectionInMemory(Long addressId, )
+    public void addConnectionInMemory(Long addressId, Long adjacentId) {
+        adjacencyList.computeIfAbsent(addressId, k -> new ArrayList<>()).add(adjacentId);
+        adjacencyList.computeIfAbsent(adjacentId, k -> new ArrayList<>()).add(addressId); // Se for mão dupla
+    }
+
+    public Hospital findNearestAvailableHospital(Long currentAddressId) {
+        return null;
+    }
+
 }
