@@ -6,6 +6,25 @@
 
 **Plinio** is the backend service for **Ambulancia** — a Spring Boot API focused on **hospitals** and **addresses**: who is available, where they are, and how capacity looks on the ground. Built for clarity, validation-first payloads, and a clean layered layout so the product can grow into routing and dispatch without rewriting the core.
 
+This repository is part of a **university coursework project**. It is meant for learning and demonstration (architecture, REST design, persistence), not as a production-ready emergency system unless you harden and validate it separately.
+
+---
+
+## What “PLINIO” means
+
+The service name **PLINIO** is an acronym (in Portuguese) for the platform concept:
+
+| Letter | Expansion |
+|--------|-----------|
+| **P** | **P**lataforma de — *Platform for* |
+| **L** | **L**ogística **e** — *logistics and* |
+| **I** | **I**ntegração **de** — *integration of* |
+| **N** | **N**ós **e** — *nodes and* |
+| **I** | **I**tinerários — *itineraries* |
+| **O** | **O**timizados — *optimized* |
+
+Full reading: **Plataforma de Logística e Integração de Nós e Itinerários Otimizados** — a platform for logistics and the integration of nodes and optimized routes. The current codebase focuses on the data layer (facilities and locations); graph and routing pieces are the direction implied by the name.
+
 ---
 
 ## Why this exists
@@ -121,4 +140,4 @@ The application name in config is **`plinio`**.
 
 ---
 
-*Plinio — named for the idea of mapping the territory with care. Built for Ambulancia.*
+*Academic project — Ambulancia / PLINIO.*
