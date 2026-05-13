@@ -4,5 +4,8 @@ import com.ambulancia.plinio.model.Hospital;
 
 import java.util.List;
 
-public record NearestHospitalRoutingResult(Hospital hospital, List<Long> routeAddressIds) {
+public record NearestHospitalRoutingResult(
+        Hospital hospital,
+        List<Long> routeAddressIds,
+        double totalRouteDistance) {
 }

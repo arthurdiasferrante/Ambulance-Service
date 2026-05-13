@@ -16,6 +16,12 @@ public class Address {
     @Column(nullable = false)
     private boolean available = true;
 
+    @Column(name = "coord_x", nullable = false)
+    private double coordX;
+
+    @Column(name = "coord_y", nullable = false)
+    private double coordY;
+
     public long getId() {
         return id;
     }
@@ -34,5 +40,21 @@ public class Address {
 
     public void setAvailable(boolean available) {
         this.available = available;
+    }
+
+    public double getCoordX() {
+        return coordX;
+    }
+
+    public void setCoordX(double coordX) {
+        this.coordX = coordX;
+    }
+
+    public double getCoordY() {
+        return coordY;
+    }
+
+    public void setCoordY(double coordY) {
+        this.coordY = coordY;
     }
 }

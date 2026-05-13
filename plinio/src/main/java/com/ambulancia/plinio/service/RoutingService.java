@@ -25,7 +25,9 @@ public class RoutingService {
         return result
                 .map(
                         r -> new NearestHospitalRouteDTO(
-                                r.routeAddressIds(), hospitalMapper.toResponseDTO(r.hospital())))
+                                r.routeAddressIds(),
+                                hospitalMapper.toResponseDTO(r.hospital()),
+                                r.totalRouteDistance()))
                 .orElseThrow(
                         () -> new ResponseStatusException(
                                 HttpStatus.NOT_FOUND,

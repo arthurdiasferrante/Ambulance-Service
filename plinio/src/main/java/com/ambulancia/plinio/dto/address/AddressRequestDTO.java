@@ -7,5 +7,9 @@ public record AddressRequestDTO(
         @NotNull(message = "Bairro é obrigatório")
         String name,
 
-        Boolean available) {
+        Boolean available,
+
+        double coordX,
+
+        double coordY) {
 }

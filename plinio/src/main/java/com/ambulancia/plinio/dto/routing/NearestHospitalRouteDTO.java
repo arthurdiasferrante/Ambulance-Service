@@ -6,6 +6,7 @@ import java.util.List;
 
 public record NearestHospitalRouteDTO(
         List<Long> routeAddressIds,
-        HospitalResponseDTO hospital
-) {
+        HospitalResponseDTO hospital,
+        /** Comprimento total da rota no plano (soma dos pesos das arestas). */
+        double totalRouteDistance) {
 }

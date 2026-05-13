@@ -21,6 +21,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.within;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -57,10 +58,10 @@ class GraphServiceRoutingIntegrationTest {
     }
 
     @Test
-    void bfs_prefersFartherVertex_whenCloserHospitalHasNoVacancy() {
-        Address a = saveAddress("A", true);
-        Address b = saveAddress("B", true);
-        Address c = saveAddress("C", true);
+    void weightedRoute_prefersFartherVertex_whenCloserHospitalHasNoVacancy() {
+        Address a = saveAddress("A", true, 0, 0);
+        Address b = saveAddress("B", true, 10, 0);
+        Address c = saveAddress("C", true, 20, 0);
         link(a.getId(), b.getId());
         link(b.getId(), c.getId());
 
@@ -73,11 +74,12 @@ class GraphServiceRoutingIntegrationTest {
         assertThat(route).isPresent();
         assertThat(route.get().hospital().getName()).isEqualTo("H-C");
         assertThat(route.get().routeAddressIds()).containsExactly(b.getId(), c.getId());
+        assertThat(route.get().totalRouteDistance()).isCloseTo(10.0, within(1e-6));
     }
 
     @Test
     void originWithRoutableHospital_returnsSingletonPath() {
-        Address a = saveAddress("A", true);
+        Address a = saveAddress("A", true, 5, 5);
         saveHospital("H-A", true, 10, 3, a);
         graphService.refreshFromDatabase();
 
@@ -85,12 +87,28 @@ class GraphServiceRoutingIntegrationTest {
         assertThat(route).isPresent();
         assertThat(route.get().routeAddressIds()).containsExactly(a.getId());
         assertThat(route.get().hospital().getName()).isEqualTo("H-A");
+        assertThat(route.get().totalRouteDistance()).isZero();
+    }
+
+    @Test
+    void totalRouteDistance_matchesSumOfEuclideanLegs() {
+        Address o = saveAddress("O", true, 0, 0);
+        Address p = saveAddress("P", true, 3, 0);
+        Address q = saveAddress("Q", true, 3, 4);
+        link(o.getId(), p.getId());
+        link(p.getId(), q.getId());
+        saveHospital("H-Q", true, 5, 0, q);
+        graphService.refreshFromDatabase();
+
+        Optional<NearestHospitalRoutingResult> route = graphService.findNearestAvailableHospitalRoute(o.getId());
+        assertThat(route).isPresent();
+        assertThat(route.get().totalRouteDistance()).isCloseTo(7.0, within(1e-6));
     }
 
     @Test
     void skipsFullHospitalAtOriginWhenNeighborHasVacancy() {
-        Address a = saveAddress("A", true);
-        Address b = saveAddress("B", true);
+        Address a = saveAddress("A", true, 0, 0);
+        Address b = saveAddress("B", true, 1, 0);
         link(a.getId(), b.getId());
         saveHospital("H-A", true, 20, 20, a);
         saveHospital("H-B", true, 15, 10, b);
@@ -100,13 +118,14 @@ class GraphServiceRoutingIntegrationTest {
         assertThat(route).isPresent();
         assertThat(route.get().hospital().getName()).isEqualTo("H-B");
         assertThat(route.get().routeAddressIds()).containsExactly(a.getId(), b.getId());
+        assertThat(route.get().totalRouteDistance()).isCloseTo(1.0, within(1e-6));
     }
 
     @Test
     void skipsUnavailableAddressVertices() {
-        Address a = saveAddress("A", true);
-        Address b = saveAddress("B", false);
-        Address c = saveAddress("C", true);
+        Address a = saveAddress("A", true, 0, 0);
+        Address b = saveAddress("B", false, 1, 0);
+        Address c = saveAddress("C", true, 2, 0);
         link(a.getId(), b.getId());
         link(b.getId(), c.getId());
         saveHospital("H-C", true, 10, 0, c);
@@ -118,8 +137,8 @@ class GraphServiceRoutingIntegrationTest {
 
     @Test
     void routingService_throwsWhenNoReachableHospitalWithVacancy() {
-        Address a = saveAddress("A", true);
-        Address b = saveAddress("B", true);
+        Address a = saveAddress("A", true, 0, 0);
+        Address b = saveAddress("B", true, 1, 0);
         link(a.getId(), b.getId());
         saveHospital("H-B", true, 8, 8, b);
         graphService.refreshFromDatabase();
@@ -135,8 +154,8 @@ class GraphServiceRoutingIntegrationTest {
 
     @Test
     void adminClosedHospitalIgnoredEvenWithVacancy() {
-        Address a = saveAddress("A", true);
-        Address b = saveAddress("B", true);
+        Address a = saveAddress("A", true, 0, 0);
+        Address b = saveAddress("B", true, 5, 0);
         link(a.getId(), b.getId());
         saveHospital("H-A", false, 10, 0, a);
         saveHospital("H-B", true, 10, 5, b);
@@ -149,8 +168,8 @@ class GraphServiceRoutingIntegrationTest {
 
     @Test
     void httpNearestHospital_returnsJson() throws Exception {
-        Address a = saveAddress("A", true);
-        Address b = saveAddress("B", true);
+        Address a = saveAddress("A", true, 0, 0);
+        Address b = saveAddress("B", true, 10, 0);
         link(a.getId(), b.getId());
         saveHospital("H-B", true, 10, 2, b);
         graphService.refreshFromDatabase();
@@ -159,13 +178,16 @@ class GraphServiceRoutingIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.routeAddressIds[0]").value(a.getId()))
                 .andExpect(jsonPath("$.routeAddressIds[1]").value(b.getId()))
-                .andExpect(jsonPath("$.hospital.name").value("H-B"));
+                .andExpect(jsonPath("$.hospital.name").value("H-B"))
+                .andExpect(jsonPath("$.totalRouteDistance").value(10.0));
     }
 
-    private Address saveAddress(String neighborhood, boolean available) {
+    private Address saveAddress(String neighborhood, boolean available, double x, double y) {
         Address address = new Address();
         address.setNeighborhood(neighborhood);
         address.setAvailable(available);
+        address.setCoordX(x);
+        address.setCoordY(y);
         return addressRepository.save(address);
     }
 
