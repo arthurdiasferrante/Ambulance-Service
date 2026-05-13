@@ -9,7 +9,7 @@ public class Hospital {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long Id;
+    private long id;
 
     @Column(nullable = false)
     private String name;
@@ -29,7 +29,7 @@ public class Hospital {
 
 
     public long getId() {
-        return Id;
+        return id;
     }
 
     public String getName() {

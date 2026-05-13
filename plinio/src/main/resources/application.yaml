@@ -1,11 +1,16 @@
 spring:
   application:
     name: plinio
+  config:
+    import: optional:file:.env.properties
   datasource:
-    url: jdbc:h2:mem:plinio;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=PostgreSQL
-    username: sa
-    password:
+    url: jdbc:postgresql://localhost:5432/plinio_db
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
   jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
       ddl-auto: update
     open-in-view: false
+    show-sql: true

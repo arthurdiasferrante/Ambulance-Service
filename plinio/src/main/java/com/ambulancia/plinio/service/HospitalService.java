@@ -19,11 +19,17 @@ public class HospitalService {
     private final HospitalRepository hospitalRepository;
     private final AddressRepository addressRepository;
     private final HospitalMapper mapper;
+    private final GraphService graphService;
 
-    public HospitalService(HospitalRepository hospitalRepository, AddressRepository addressRepository, HospitalMapper hospitalMapper) {
+    public HospitalService(
+            HospitalRepository hospitalRepository,
+            AddressRepository addressRepository,
+            HospitalMapper hospitalMapper,
+            GraphService graphService) {
         this.hospitalRepository = hospitalRepository;
         this.addressRepository = addressRepository;
         this.mapper = hospitalMapper;
+        this.graphService = graphService;
     }
 
     public HospitalResponseDTO createHospital(HospitalRequestDTO requestDTO) {
@@ -33,6 +39,7 @@ public class HospitalService {
         Hospital hospital = mapper.toEntity(requestDTO);
         hospital.setAddress(address);
         Hospital saved = hospitalRepository.save(hospital);
+        graphService.refreshFromDatabase();
         return mapper.toResponseDTO(saved);
     }
 
@@ -51,6 +58,7 @@ public class HospitalService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Hospital não encontrado"));
         mapper.updateEntityFromDTO(requestDTO, hospital);
         Hospital saved = hospitalRepository.save(hospital);
+        graphService.refreshFromDatabase();
         return mapper.toResponseDTO(saved);
     }
 
@@ -62,13 +70,14 @@ public class HospitalService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Hospital não encontrado"));
         hospital.setAddress(address);
         Hospital saved = hospitalRepository.save(hospital);
+        graphService.refreshFromDatabase();
         return mapper.toResponseDTO(saved);
     }
 
     public void deleteHospital(Long id) {
-        Hospital hospital = hospitalRepository
-                .findById(id)
+        hospitalRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Hospital não encontrado"));
         hospitalRepository.deleteById(id);
+        graphService.refreshFromDatabase();
     }
 }

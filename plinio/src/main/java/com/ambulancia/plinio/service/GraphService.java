@@ -68,8 +68,9 @@ public class GraphService {
         }
     }
 
+
     @Transactional
-    public synchronized void addBidirectionalEdge(long addressIdA, long addressIdB) {
+    public synchronized Optional<GraphEdge> addBidirectionalEdge(long addressIdA, long addressIdB) {
         if (addressIdA == addressIdB) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Um endereço não pode ligar a ele mesmo");
         }
@@ -81,21 +82,29 @@ public class GraphService {
         long hi = Math.max(addressIdA, addressIdB);
 
         if (graphEdgeRepository.existsByAddressAIdAndAddressBId(lo, hi)) {
-            return;
+            return Optional.empty();
         }
 
         GraphEdge edge = new GraphEdge();
         edge.setAddressAId(lo);
         edge.setAddressBId(hi);
-        graphEdgeRepository.save(edge);
-        linkUndirected(lo, hi);
+        GraphEdge saved = graphEdgeRepository.save(edge);
+        refreshFromDatabase();
+        return Optional.of(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<GraphEdge> findEdgeByEndpoints(long addressIdA, long addressIdB) {
+        long lo = Math.min(addressIdA, addressIdB);
+        long hi = Math.max(addressIdA, addressIdB);
+        return graphEdgeRepository.findByAddressAIdAndAddressBId(lo, hi);
     }
 
     @Transactional
     public synchronized void deleteEdgesIncidentTo(long addressId) {
         graphEdgeRepository.deleteAllIncidentTo(addressId);
-        refreshFromDatabase();
     }
+
 
     public Optional<NearestHospitalRoutingResult> findNearestAvailableHospitalRoute(long fromAddressId) {
         Address origin = addressRepository
@@ -105,11 +114,11 @@ public class GraphService {
         if (!origin.isAvailable()) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
-                    "Endereço de origem indisponível — não é possível calcular rota a partir deste vértice");
+                    "Endereço de origem indisponível. Não é possível calcular rota a partir deste vértice");
         }
 
-        if (isDestinationWithAvailableHospital(fromAddressId)) {
-            Hospital pick = firstAvailableHospitalAt(fromAddressId);
+        if (isDestinationWithRoutableHospital(fromAddressId)) {
+            Hospital pick = firstRoutableHospitalAt(fromAddressId);
             if (pick != null) {
                 return Optional.of(new NearestHospitalRoutingResult(pick, List.of(fromAddressId)));
             }
@@ -133,8 +142,8 @@ public class GraphService {
                 }
                 parent.put(neighbor, current);
 
-                if (isDestinationWithAvailableHospital(neighbor)) {
-                    Hospital hospital = firstAvailableHospitalAt(neighbor);
+                if (isDestinationWithRoutableHospital(neighbor)) {
+                    Hospital hospital = firstRoutableHospitalAt(neighbor);
                     if (hospital != null) {
                         List<Long> path = reconstructPath(parent, fromAddressId, neighbor);
                         return Optional.of(new NearestHospitalRoutingResult(hospital, path));
@@ -161,13 +170,25 @@ public class GraphService {
         adjacencyList.computeIfAbsent(b, k -> new ArrayList<>()).add(a);
     }
 
-    private boolean isDestinationWithAvailableHospital(long addressId) {
-        return hospitalByAddressId.getOrDefault(addressId, List.of()).stream().anyMatch(Hospital::isAvailable);
+
+    private static boolean isHospitalRoutable(Hospital h) {
+        if (!h.isAvailable()) {
+            return false;
+        }
+        int capacity = h.getTotalBeds();
+        if (capacity <= 0) {
+            return false;
+        }
+        return h.getTotalOccupiedBeds() < capacity;
     }
 
-    private Hospital firstAvailableHospitalAt(long addressId) {
+    private boolean isDestinationWithRoutableHospital(long addressId) {
+        return hospitalByAddressId.getOrDefault(addressId, List.of()).stream().anyMatch(GraphService::isHospitalRoutable);
+    }
+
+    private Hospital firstRoutableHospitalAt(long addressId) {
         return hospitalByAddressId.getOrDefault(addressId, List.of()).stream()
-                .filter(Hospital::isAvailable)
+                .filter(GraphService::isHospitalRoutable)
                 .findFirst()
                 .orElse(null);
     }

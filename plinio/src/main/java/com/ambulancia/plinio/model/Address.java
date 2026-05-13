@@ -8,7 +8,7 @@ public class Address {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long Id;
+    private long id;
 
     @Column(nullable = false)
     private String neighborhood;
@@ -17,7 +17,7 @@ public class Address {
     private boolean available = true;
 
     public long getId() {
-        return Id;
+        return id;
     }
 
     public String getNeighborhood() {

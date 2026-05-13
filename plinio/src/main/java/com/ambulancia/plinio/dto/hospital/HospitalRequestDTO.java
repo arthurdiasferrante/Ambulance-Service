@@ -1,26 +1,25 @@
 package com.ambulancia.plinio.dto.hospital;
 
-import com.ambulancia.plinio.model.Address;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 public record HospitalRequestDTO(
 
-        @NotNull(message = "Nome do hospital é obrigatório")
+        @NotBlank(message = "Nome do hospital é obrigatório")
         @Size(max = 100)
         String name,
 
-        @NotBlank(message = "Deve ter um status")
         boolean available,
 
-        @NotNull(message = "Número de camas é obrigatório")
+        @Min(value = 0, message = "Número de camas não pode ser negativo")
         int totalBeds,
 
-        @NotNull(message = "sei la caralho")
+        @Min(value = 0, message = "Leitos ocupados não pode ser negativo")
         int totalOccupiedBeds,
 
-        @NotBlank
+        @NotNull(message = "Endereço é obrigatório")
         Long addressId
-        ) {
+) {
 }
