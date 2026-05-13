@@ -7,3 +7,4 @@ public record AddressResponseDTO(
         String neighborhood
     ) {
 }
+

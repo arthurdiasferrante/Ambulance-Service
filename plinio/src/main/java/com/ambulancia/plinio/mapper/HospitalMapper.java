@@ -20,7 +20,7 @@ public interface HospitalMapper {
     HospitalResponseDTO toResponseDTO(Hospital hospital);
 
     List<HospitalResponseDTO> toResponseDTOList(List<Hospital> hospitals);
-
+    
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "address", ignore = true)
     void updateEntityFromDTO(HospitalRequestDTO requestDTO, @MappingTarget Hospital entity);
